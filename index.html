@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>$ROYALKISS – The Princess Has Chosen You</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; font-family: Arial, sans-serif; background: radial-gradient(circle at top, #2b1055, #000); color: white; text-align: center; }
+.container { max-width: 900px; margin: auto; padding: 20px; }
+h1 { font-size: 3rem; color: gold; text-shadow: 0 0 20px gold; }
+#video-container { position: relative; max-width: 640px; margin: 20px auto; }
+video, canvas { width: 100%; border-radius: 16px; }
+button { margin-top: 20px; padding: 16px 40px; font-size: 1.2rem; border-radius: 40px; border: none; cursor: pointer; background: gold; color: black; font-weight: bold; box-shadow: 0 0 20px gold; }
+button:hover { transform: scale(1.05); }
+#sceneText { font-size: 1.6rem; margin-top: 20px; text-shadow: 0 0 12px gold; }
+#mintBtn { display: none; margin-top: 30px; background: linear-gradient(90deg, hotpink, gold); color: white; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>$ROYALKISS</h1>
+<p>The Princess is watching.</p>
+<div id="video-container">
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas"></canvas>
+</div>
+<div id="sceneText">ARE YOU WORTHY?</div>
+<button id="startBtn">BECOME A PRINCE</button>
+<button id="mintBtn">JOIN THE KINGDOM</button>
+</div>
 
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const startBtn = document.getElementById("startBtn");
+const mintBtn = document.getElementById("mintBtn");
+const sceneText = document.getElementById("sceneText");
+let stream; let snapshot;
+
+startBtn.onclick = async () => {
+stream = await navigator.mediaDevices.getUserMedia({ video: true });
+video.srcObject = stream;
+video.onloadedmetadata = () => {
+canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+sceneText.innerText = "ANALYZING ROYAL BLOOD…";
+setTimeout(capturePhoto, 2000);
+};
+};
+
+function capturePhoto() {
+ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+snapshot = canvas.toDataURL("image/png");
+stream.getTracks().forEach(t => t.stop());
+drawPrince();
+}
+
+function drawPrince() {
+const img = new Image(); img.src = snapshot;
+img.onload = () => {
+ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.drawImage(img,0,0,canvas.width,canvas.height);
+const crown = new Image(); crown.src = "crown.png";
+crown.onload = () => { ctx.drawImage(crown, canvas.width/2 - 120, 30, 240, 160);
+sceneText.innerText = "YOU ARE WORTHY.";
+setTimeout(drawPrincess, 1200); };
+};
+}
+
+function drawPrincess() {
+const img = new Image(); img.src = snapshot;
+const princess = new Image(); princess.src = "princess.png";
+princess.onload = () => {
+let x = canvas.width; const y = canvas.height/2 - 180;
+function animate() {
+ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.drawImage(img,0,0,canvas.width,canvas.height);
+ctx.drawImage(crown, canvas.width/2 - 120, 30, 240, 160);
+ctx.drawImage(princess,x,y,300,360);
+x -= 12;
+if(x > canvas.width/2){ requestAnimationFrame(animate); } else { kiss(); } }
+animate();
+};
+}
+
+function kiss() {
+new Audio("kiss.mp3").play();
+ctx.fillStyle = "rgba(255,105,180,0.15)";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+sceneText.innerText = "THE PRINCESS HAS CHOSEN YOU";
+mintBtn.style.display = "inline-block";
+}
+</script>
+</body>
+</html>
