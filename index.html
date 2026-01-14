@@ -4,43 +4,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ROYAL KISS</title>
-
 <style>
 body{
   margin:0;
   font-family: system-ui, -apple-system, sans-serif;
-  background: radial-gradient(circle at top, #3b145f, #120016);
+  background:#1b0f3d;
   color:#fff;
   text-align:center;
 }
-
 h1{
   margin:20px 0 10px;
   font-size:2.2rem;
 }
-
 #stage{
   position:relative;
   width:100%;
   max-width:420px;
   height:640px;
   margin:20px auto;
-  background:url('https://images.unsplash.com/photo-1501785888041-af3ef285b470') center/cover;
   border-radius:24px;
   overflow:hidden;
   box-shadow:0 0 40px rgba(255,0,180,.4);
+  background: linear-gradient(#a69dcf,#5c3f99);
 }
-
-/* Kamera */
+#stage::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill=\"%239c7c55\"/><polygon points=\"50,400 100,300 150,400\" fill=\"%236b4c34\"/><polygon points=\"150,400 200,300 250,400\" fill=\"%236b4c34\"/><polygon points=\"250,400 300,300 350,400\" fill=\"%236b4c34\"/></svg>') center/cover no-repeat;
+  z-index:0;
+}
 video, #cameraCanvas{
   position:absolute;
   inset:0;
   width:100%;
   height:100%;
   object-fit:cover;
+  z-index:1;
 }
-
-/* Ritter */
 #knight{
   position:absolute;
   bottom:0;
@@ -50,8 +51,6 @@ video, #cameraCanvas{
   z-index:2;
   display:none;
 }
-
-/* GESICHT – absichtlich riesig */
 #faceCanvas{
   position:absolute;
   top:60px;
@@ -64,8 +63,6 @@ video, #cameraCanvas{
   z-index:4;
   display:none;
 }
-
-/* Krone */
 #crown{
   position:absolute;
   top:10px;
@@ -75,8 +72,6 @@ video, #cameraCanvas{
   z-index:6;
   transition:.6s ease;
 }
-
-/* Prinzessin */
 #princess{
   position:absolute;
   bottom:0;
@@ -85,11 +80,6 @@ video, #cameraCanvas{
   z-index:3;
   display:none;
 }
-
-@keyframes princessIn{
-  to{ right:20px; }
-}
-
 #btn{
   margin:20px auto;
   padding:18px 42px;
@@ -101,14 +91,12 @@ video, #cameraCanvas{
   font-weight:900;
   cursor:pointer;
 }
-
 #status{
   min-height:1.8em;
   opacity:.9;
 }
 </style>
 </head>
-
 <body>
 
 <h1>THE PRINCESS HAS CHOSEN YOU</h1>
@@ -132,7 +120,6 @@ video, #cameraCanvas{
 const video = document.getElementById('video');
 const camCanvas = document.getElementById('cameraCanvas');
 const camCtx = camCanvas.getContext('2d');
-
 const faceCanvas = document.getElementById('faceCanvas');
 const faceCtx = faceCanvas.getContext('2d');
 
@@ -153,7 +140,6 @@ async function start(){
   video.srcObject = stream;
 
   await new Promise(r => video.onloadedmetadata = r);
-
   camCanvas.width = video.videoWidth;
   camCanvas.height = video.videoHeight;
 
@@ -163,7 +149,6 @@ async function start(){
 function captureFace(){
   camCtx.drawImage(video,0,0,camCanvas.width,camCanvas.height);
 
-  /* EXTREMER MEME-CROP */
   const size = camCanvas.width * 0.75;
   const x = camCanvas.width/2 - size/2;
   const y = camCanvas.height/4 - size/2;
@@ -171,11 +156,7 @@ function captureFace(){
   faceCanvas.width = 280;
   faceCanvas.height = 280;
 
-  faceCtx.drawImage(
-    camCanvas,
-    x, y, size, size,
-    0, 0, 280, 280
-  );
+  faceCtx.drawImage(camCanvas, x, y, size, size, 0, 0, 280, 280);
 
   video.srcObject.getTracks().forEach(t=>t.stop());
   camCanvas.style.display="none";
@@ -193,19 +174,30 @@ function revealPrince(){
   },800);
 
   setTimeout(()=>{
-    summonPrincess();
+    movePrincessToHead();
   },2500);
 }
 
-function summonPrincess(){
-  status.textContent = "The princess approaches…";
+// Dynamische Bewegung der Prinzessin direkt auf Kopf
+function movePrincessToHead(){
   princess.style.display="block";
-  princess.style.animation="princessIn 2.8s ease-out forwards";
 
-  setTimeout(()=>{
-    status.textContent="Royal kiss!";
-    kiss.play();
-  },2500);
+  // Kopfposition relativ zur Stage
+  const faceRect = faceCanvas.getBoundingClientRect();
+  const stageRect = document.getElementById('stage').getBoundingClientRect();
+  const targetX = faceRect.left - stageRect.left + faceRect.width/2 - princess.width/2;
+
+  let pos = -princess.width; // Start rechts außerhalb Stage
+  const interval = setInterval(()=>{
+    pos += 8; // Geschwindigkeit
+    if(pos >= targetX){
+      pos = targetX;
+      clearInterval(interval);
+      status.textContent="Royal kiss!";
+      kiss.play();
+    }
+    princess.style.left = pos + "px";
+  },16); // ca 60fps
 }
 
 btn.onclick = start;
