@@ -1,146 +1,199 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>$ROYALKISS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROYAL KISS</title>
+
 <style>
-body {
+body{
   margin:0;
-  background: radial-gradient(circle at top, #2b1055, #000);
-  color:white;
-  font-family: Arial, sans-serif;
+  font-family: system-ui, sans-serif;
+  background: radial-gradient(circle at top, #3b145f, #120016);
+  color:#fff;
   text-align:center;
 }
-.container { max-width:900px; margin:auto; padding:20px; }
-h1 { color:gold; font-size:3rem; text-shadow:0 0 20px gold; }
-#stage { max-width:640px; margin:auto; }
-video, canvas { width:100%; border-radius:16px; }
-button {
-  margin-top:20px;
-  padding:16px 40px;
-  font-size:1.2rem;
-  border-radius:40px;
-  border:none;
-  cursor:pointer;
-  background:gold;
-  font-weight:bold;
+
+h1{
+  margin:20px 0 10px;
+  font-size:2.2rem;
 }
-#text { margin-top:20px; font-size:1.6rem; text-shadow:0 0 12px hotpink; }
-#mint { display:none; background:linear-gradient(90deg, hotpink, gold); color:white; }
+
+#stage{
+  position:relative;
+  width:100%;
+  max-width:420px;
+  height:640px;
+  margin:20px auto;
+  background:url('https://images.unsplash.com/photo-1501785888041-af3ef285b470') center/cover;
+  border-radius:24px;
+  overflow:hidden;
+  box-shadow:0 0 40px rgba(255,0,180,.4);
+}
+
+video, canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+#knight{
+  position:absolute;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  height:92%;
+  display:none;
+}
+
+#faceCanvas{
+  position:absolute;
+  top:115px;
+  left:50%;
+  transform:translateX(-50%);
+  width:170px;
+  height:170px;
+  border-radius:50%;
+  overflow:hidden;
+  display:none;
+}
+
+#crown{
+  position:absolute;
+  top:35px;
+  left:50%;
+  transform:translateX(-50%) scale(0);
+  width:140px;
+  transition:.6s ease;
+}
+
+#princess{
+  position:absolute;
+  bottom:0;
+  right:-220px;
+  height:92%;
+  display:none;
+}
+
+@keyframes princessIn{
+  to{ right:20px; }
+}
+
+#btn{
+  margin:20px auto;
+  padding:18px 42px;
+  font-size:1.3rem;
+  border:none;
+  border-radius:999px;
+  background:linear-gradient(90deg,#ffcc00,#ff66cc);
+  color:#000;
+  font-weight:900;
+  cursor:pointer;
+}
+
+#status{
+  min-height:1.6em;
+  opacity:.9;
+}
 </style>
 </head>
 
 <body>
-<div class="container">
-<h1>$ROYALKISS</h1>
+
+<h1>THE PRINCESS HAS CHOSEN YOU</h1>
 
 <div id="stage">
   <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas"></canvas>
+  <canvas id="cameraCanvas"></canvas>
+
+  <img id="knight" src="knight.png">
+  <canvas id="faceCanvas"></canvas>
+  <img id="crown" src="crown.png">
+  <img id="princess" src="princess.png">
 </div>
 
-<div id="text">ARE YOU WORTHY?</div>
-<button id="start">BECOME A PRINCE</button>
-<button id="mint">JOIN THE KINGDOM</button>
-</div>
+<div id="status">Tap the button to reveal your destiny</div>
+<button id="btn">BECOME A PRINCE</button>
+
+<audio id="kiss" src="kiss.mp3"></audio>
 
 <script>
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const text = document.getElementById("text");
-const startBtn = document.getElementById("start");
-const mintBtn = document.getElementById("mint");
+const video = document.getElementById('video');
+const camCanvas = document.getElementById('cameraCanvas');
+const camCtx = camCanvas.getContext('2d');
+const faceCanvas = document.getElementById('faceCanvas');
+const faceCtx = faceCanvas.getContext('2d');
 
-const knight = new Image(); knight.src = "knight.png";
-const princess = new Image(); princess.src = "princess.png";
-const crown = new Image(); crown.src = "crown.png";
-const kiss = new Audio("kiss.mp3"); kiss.volume = 0.4;
+const knight = document.getElementById('knight');
+const crown = document.getElementById('crown');
+const princess = document.getElementById('princess');
+const kiss = document.getElementById('kiss');
+const status = document.getElementById('status');
+const btn = document.getElementById('btn');
 
-let stream;
-let faceCanvas;
-let princessX;
-let animating = false;
+async function start(){
+  btn.disabled = true;
+  status.textContent = "Loading royal magic…";
 
-startBtn.onclick = async () => {
-  text.innerText = "OPENING THE ROYAL CAMERA…";
-  stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
   video.srcObject = stream;
 
-  video.onloadedmetadata = () => {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    text.innerText = "CAPTURING YOUR FACE…";
-    setTimeout(capturePhoto, 1500);
-  };
-};
+  await new Promise(r=>video.onloadedmetadata=r);
 
-function capturePhoto() {
-  const w = canvas.width;
-  const h = canvas.height;
+  camCanvas.width = video.videoWidth;
+  camCanvas.height = video.videoHeight;
 
-  faceCanvas = document.createElement("canvas");
-  faceCanvas.width = w * 0.3;
-  faceCanvas.height = w * 0.3;
-
-  faceCanvas.getContext("2d").drawImage(
-    video,
-    w * 0.35, h * 0.25, w * 0.3, w * 0.3,
-    0, 0, faceCanvas.width, faceCanvas.height
-  );
-
-  stream.getTracks().forEach(t => t.stop());
-  drawPrince();
+  setTimeout(captureFace, 1200);
 }
 
-function drawPrince() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function captureFace(){
+  camCtx.drawImage(video,0,0,camCanvas.width,camCanvas.height);
 
-  const knightX = canvas.width * 0.25;
-  const knightY = canvas.height * 0.35;
+  // Gesicht bewusst groß ausschneiden (Meme > Genauigkeit)
+  const size = camCanvas.width * 0.55;
+  const x = camCanvas.width/2 - size/2;
+  const y = camCanvas.height/3 - size/2;
 
-  ctx.drawImage(knight, knightX, knightY, 300, 420);
-  ctx.drawImage(faceCanvas, knightX + 95, knightY + 20, 110, 110);
-  ctx.drawImage(crown, knightX + 70, knightY - 45, 160, 110);
+  faceCanvas.width = 170;
+  faceCanvas.height = 170;
 
-  text.innerText = "YOU ARE THE PRINCE";
-  setTimeout(startPrincess, 1000);
+  faceCtx.drawImage(camCanvas, x, y, size, size, 0,0,170,170);
+
+  video.srcObject.getTracks().forEach(t=>t.stop());
+  camCanvas.style.display="none";
+
+  revealPrince();
 }
 
-function startPrincess() {
-  princessX = canvas.width;
-  animating = true;
-  animate();
+function revealPrince(){
+  status.textContent = "You have become a prince";
+  knight.style.display="block";
+  faceCanvas.style.display="block";
+
+  setTimeout(()=>{
+    crown.style.transform="translateX(-50%) scale(1)";
+  },600);
+
+  setTimeout(()=>{
+    summonPrincess();
+  },2200);
 }
 
-function animate() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function summonPrincess(){
+  status.textContent = "The princess approaches…";
+  princess.style.display="block";
+  princess.style.animation="princessIn 2.5s ease-out forwards";
 
-  const knightX = canvas.width * 0.25;
-  const knightY = canvas.height * 0.35;
-
-  ctx.drawImage(knight, knightX, knightY, 300, 420);
-  ctx.drawImage(faceCanvas, knightX + 95, knightY + 20, 110, 110);
-  ctx.drawImage(crown, knightX + 70, knightY - 45, 160, 110);
-
-  if (animating) {
-    ctx.drawImage(princess, princessX, knightY, 300, 420);
-    princessX -= 10;
-
-    if (princessX <= knightX + 160) {
-      animating = false;
-      kiss.play();
-      ctx.fillStyle = "rgba(255,105,180,0.25)";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      text.innerText = "THE PRINCESS HAS CHOSEN YOU";
-      mintBtn.style.display = "inline-block";
-      return;
-    }
-  }
-
-  requestAnimationFrame(animate);
+  setTimeout(()=>{
+    status.textContent="Royal kiss!";
+    kiss.play();
+  },2200);
 }
+
+btn.onclick = start;
 </script>
+
 </body>
 </html>
