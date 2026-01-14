@@ -8,7 +8,7 @@
 <style>
 body{
   margin:0;
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   background: radial-gradient(circle at top, #3b145f, #120016);
   color:#fff;
   text-align:center;
@@ -31,7 +31,8 @@ h1{
   box-shadow:0 0 40px rgba(255,0,180,.4);
 }
 
-video, canvas{
+/* Kamera */
+video, #cameraCanvas{
   position:absolute;
   inset:0;
   width:100%;
@@ -39,41 +40,49 @@ video, canvas{
   object-fit:cover;
 }
 
+/* Ritter */
 #knight{
   position:absolute;
   bottom:0;
   left:50%;
   transform:translateX(-50%);
   height:92%;
+  z-index:2;
   display:none;
 }
 
+/* GESICHT – absichtlich riesig */
 #faceCanvas{
   position:absolute;
-  top:115px;
+  top:60px;
   left:50%;
   transform:translateX(-50%);
-  width:170px;
-  height:170px;
+  width:280px;
+  height:280px;
   border-radius:50%;
   overflow:hidden;
+  z-index:4;
   display:none;
 }
 
+/* Krone */
 #crown{
   position:absolute;
-  top:35px;
+  top:10px;
   left:50%;
   transform:translateX(-50%) scale(0);
-  width:140px;
+  width:160px;
+  z-index:6;
   transition:.6s ease;
 }
 
+/* Prinzessin */
 #princess{
   position:absolute;
   bottom:0;
-  right:-220px;
+  right:-240px;
   height:92%;
+  z-index:3;
   display:none;
 }
 
@@ -94,7 +103,7 @@ video, canvas{
 }
 
 #status{
-  min-height:1.6em;
+  min-height:1.8em;
   opacity:.9;
 }
 </style>
@@ -123,6 +132,7 @@ video, canvas{
 const video = document.getElementById('video');
 const camCanvas = document.getElementById('cameraCanvas');
 const camCtx = camCanvas.getContext('2d');
+
 const faceCanvas = document.getElementById('faceCanvas');
 const faceCtx = faceCanvas.getContext('2d');
 
@@ -137,10 +147,12 @@ async function start(){
   btn.disabled = true;
   status.textContent = "Loading royal magic…";
 
-  const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:'user' }
+  });
   video.srcObject = stream;
 
-  await new Promise(r=>video.onloadedmetadata=r);
+  await new Promise(r => video.onloadedmetadata = r);
 
   camCanvas.width = video.videoWidth;
   camCanvas.height = video.videoHeight;
@@ -151,15 +163,19 @@ async function start(){
 function captureFace(){
   camCtx.drawImage(video,0,0,camCanvas.width,camCanvas.height);
 
-  // Gesicht bewusst groß ausschneiden (Meme > Genauigkeit)
-  const size = camCanvas.width * 0.55;
+  /* EXTREMER MEME-CROP */
+  const size = camCanvas.width * 0.75;
   const x = camCanvas.width/2 - size/2;
-  const y = camCanvas.height/3 - size/2;
+  const y = camCanvas.height/4 - size/2;
 
-  faceCanvas.width = 170;
-  faceCanvas.height = 170;
+  faceCanvas.width = 280;
+  faceCanvas.height = 280;
 
-  faceCtx.drawImage(camCanvas, x, y, size, size, 0,0,170,170);
+  faceCtx.drawImage(
+    camCanvas,
+    x, y, size, size,
+    0, 0, 280, 280
+  );
 
   video.srcObject.getTracks().forEach(t=>t.stop());
   camCanvas.style.display="none";
@@ -174,22 +190,22 @@ function revealPrince(){
 
   setTimeout(()=>{
     crown.style.transform="translateX(-50%) scale(1)";
-  },600);
+  },800);
 
   setTimeout(()=>{
     summonPrincess();
-  },2200);
+  },2500);
 }
 
 function summonPrincess(){
   status.textContent = "The princess approaches…";
   princess.style.display="block";
-  princess.style.animation="princessIn 2.5s ease-out forwards";
+  princess.style.animation="princessIn 2.8s ease-out forwards";
 
   setTimeout(()=>{
     status.textContent="Royal kiss!";
     kiss.play();
-  },2200);
+  },2500);
 }
 
 btn.onclick = start;
