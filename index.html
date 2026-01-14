@@ -29,20 +29,6 @@ h1{
   background: linear-gradient(#a69dcf,#5c3f99);
 }
 
-/* Platzhalter für Kopfposition */
-#head-placeholder{
-  position:absolute;
-  top:100px;
-  left:50%;
-  transform:translateX(-50%);
-  width:280px;
-  height:280px;
-  border:3px dashed rgba(255,255,255,0.7);
-  border-radius:50%;
-  z-index:1;
-  pointer-events:none;
-}
-
 /* Kamera */
 video, #cameraCanvas{
   position:absolute;
@@ -64,12 +50,12 @@ video, #cameraCanvas{
   display:none;
 }
 
-/* GESICHT */
+/* GESICHT direkt auf Ritter */
 #faceCanvas{
   position:absolute;
-  width:280px;
-  height:280px;
-  top:100px;
+  width:160px; /* kleiner Kopf */
+  height:160px;
+  bottom:300px; /* über Ritter gesetzt */
   left:50%;
   transform:translateX(-50%);
   border-radius:50%;
@@ -81,10 +67,10 @@ video, #cameraCanvas{
 /* Krone */
 #crown{
   position:absolute;
-  top:70px;
+  top:180px; /* über Kopf */
   left:50%;
   transform:translateX(-50%) scale(0);
-  width:160px;
+  width:100px;
   z-index:6;
   transition:.6s ease;
 }
@@ -119,10 +105,9 @@ video, #cameraCanvas{
 </head>
 <body>
 
-<h1>POSITION YOUR FACE OVER THE CIRCLE</h1>
+<h1>YOUR ROYAL TRANSFORMATION</h1>
 
 <div id="stage">
-  <div id="head-placeholder"></div>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="cameraCanvas"></canvas>
 
@@ -132,7 +117,7 @@ video, #cameraCanvas{
   <img id="princess" src="princess.png">
 </div>
 
-<div id="status">Richte dein Gesicht aus und drücke SCAN</div>
+<div id="status">Drücke SCAN um dein Prinzenbild zu enthüllen</div>
 <button id="btn">SCAN MY FACE</button>
 
 <audio id="kiss" src="kiss.mp3"></audio>
@@ -150,7 +135,6 @@ const princess = document.getElementById('princess');
 const kiss = document.getElementById('kiss');
 const status = document.getElementById('status');
 const btn = document.getElementById('btn');
-const placeholder = document.getElementById('head-placeholder');
 
 async function start(){
   btn.disabled = true;
@@ -165,36 +149,29 @@ async function start(){
   camCanvas.width = video.videoWidth;
   camCanvas.height = video.videoHeight;
 
-  setTimeout(captureFace, 1200);
+  setTimeout(captureFace, 1000);
 }
 
 function captureFace(){
   camCtx.drawImage(video,0,0,camCanvas.width,camCanvas.height);
 
-  // Berechne Position des Platzhalters in Video-Koordinaten
-  const stageRect = document.getElementById('stage').getBoundingClientRect();
-  const phRect = placeholder.getBoundingClientRect();
+  // Kopf direkt proportional auf Ritter
+  const sw = camCanvas.width/3;
+  const sh = camCanvas.width/3;
+  const sx = camCanvas.width/2 - sw/2;
+  const sy = camCanvas.height/4 - sh/2;
 
-  const scaleX = camCanvas.width / stageRect.width;
-  const scaleY = camCanvas.height / stageRect.height;
-
-  const sx = phRect.left - stageRect.left;
-  const sy = phRect.top - stageRect.top;
-  const sw = phRect.width;
-  const sh = phRect.height;
-
-  faceCanvas.width = sw;
-  faceCanvas.height = sh;
+  faceCanvas.width = 160;
+  faceCanvas.height = 160;
 
   faceCtx.drawImage(
     video,
-    sx*scaleX, sy*scaleY, sw*scaleX, sh*scaleY,
-    0, 0, sw, sh
+    sx, sy, sw, sh,
+    0, 0, 160, 160
   );
 
   video.srcObject.getTracks().forEach(t=>t.stop());
   camCanvas.style.display="none";
-  placeholder.style.display="none";
 
   revealPrince();
 }
@@ -210,7 +187,7 @@ function revealPrince(){
 
   setTimeout(()=>{
     movePrincessToHead();
-  },2000);
+  },1800);
 }
 
 function movePrincessToHead(){
@@ -221,8 +198,9 @@ function movePrincessToHead(){
 
   let pos = stageRect.width;
   princess.style.bottom = "0px";
+
   const interval = setInterval(()=>{
-    pos -= 8; // Geschwindigkeit
+    pos -= 8;
     if(pos <= targetX){
       pos = targetX;
       clearInterval(interval);
