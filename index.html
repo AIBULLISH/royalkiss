@@ -16,6 +16,7 @@ h1{
   margin:20px 0 10px;
   font-size:2.2rem;
 }
+/* Bühne */
 #stage{
   position:relative;
   width:100%;
@@ -27,21 +28,32 @@ h1{
   box-shadow:0 0 40px rgba(255,0,180,.4);
   background: linear-gradient(#a69dcf,#5c3f99);
 }
-#stage::before{
-  content:"";
+
+/* Platzhalter für Kopfposition */
+#head-placeholder{
   position:absolute;
-  inset:0;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill=\"%239c7c55\"/><polygon points=\"50,400 100,300 150,400\" fill=\"%236b4c34\"/><polygon points=\"150,400 200,300 250,400\" fill=\"%236b4c34\"/><polygon points=\"250,400 300,300 350,400\" fill=\"%236b4c34\"/></svg>') center/cover no-repeat;
-  z-index:0;
+  top:100px;
+  left:50%;
+  transform:translateX(-50%);
+  width:280px;
+  height:280px;
+  border:3px dashed rgba(255,255,255,0.7);
+  border-radius:50%;
+  z-index:1;
+  pointer-events:none;
 }
+
+/* Kamera */
 video, #cameraCanvas{
   position:absolute;
   inset:0;
   width:100%;
   height:100%;
   object-fit:cover;
-  z-index:1;
+  z-index:0;
 }
+
+/* Ritter */
 #knight{
   position:absolute;
   bottom:0;
@@ -51,27 +63,33 @@ video, #cameraCanvas{
   z-index:2;
   display:none;
 }
+
+/* GESICHT */
 #faceCanvas{
   position:absolute;
-  top:60px;
-  left:50%;
-  transform:translateX(-50%);
   width:280px;
   height:280px;
+  top:100px;
+  left:50%;
+  transform:translateX(-50%);
   border-radius:50%;
   overflow:hidden;
   z-index:4;
   display:none;
 }
+
+/* Krone */
 #crown{
   position:absolute;
-  top:10px;
+  top:70px;
   left:50%;
   transform:translateX(-50%) scale(0);
   width:160px;
   z-index:6;
   transition:.6s ease;
 }
+
+/* Prinzessin */
 #princess{
   position:absolute;
   bottom:0;
@@ -80,6 +98,7 @@ video, #cameraCanvas{
   z-index:3;
   display:none;
 }
+
 #btn{
   margin:20px auto;
   padding:18px 42px;
@@ -91,6 +110,7 @@ video, #cameraCanvas{
   font-weight:900;
   cursor:pointer;
 }
+
 #status{
   min-height:1.8em;
   opacity:.9;
@@ -99,9 +119,10 @@ video, #cameraCanvas{
 </head>
 <body>
 
-<h1>THE PRINCESS HAS CHOSEN YOU</h1>
+<h1>POSITION YOUR FACE OVER THE CIRCLE</h1>
 
 <div id="stage">
+  <div id="head-placeholder"></div>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="cameraCanvas"></canvas>
 
@@ -111,8 +132,8 @@ video, #cameraCanvas{
   <img id="princess" src="princess.png">
 </div>
 
-<div id="status">Tap the button to reveal your destiny</div>
-<button id="btn">BECOME A PRINCE</button>
+<div id="status">Richte dein Gesicht aus und drücke SCAN</div>
+<button id="btn">SCAN MY FACE</button>
 
 <audio id="kiss" src="kiss.mp3"></audio>
 
@@ -129,6 +150,7 @@ const princess = document.getElementById('princess');
 const kiss = document.getElementById('kiss');
 const status = document.getElementById('status');
 const btn = document.getElementById('btn');
+const placeholder = document.getElementById('head-placeholder');
 
 async function start(){
   btn.disabled = true;
@@ -149,23 +171,36 @@ async function start(){
 function captureFace(){
   camCtx.drawImage(video,0,0,camCanvas.width,camCanvas.height);
 
-  const size = camCanvas.width * 0.75;
-  const x = camCanvas.width/2 - size/2;
-  const y = camCanvas.height/4 - size/2;
+  // Berechne Position des Platzhalters in Video-Koordinaten
+  const stageRect = document.getElementById('stage').getBoundingClientRect();
+  const phRect = placeholder.getBoundingClientRect();
 
-  faceCanvas.width = 280;
-  faceCanvas.height = 280;
+  const scaleX = camCanvas.width / stageRect.width;
+  const scaleY = camCanvas.height / stageRect.height;
 
-  faceCtx.drawImage(camCanvas, x, y, size, size, 0, 0, 280, 280);
+  const sx = phRect.left - stageRect.left;
+  const sy = phRect.top - stageRect.top;
+  const sw = phRect.width;
+  const sh = phRect.height;
+
+  faceCanvas.width = sw;
+  faceCanvas.height = sh;
+
+  faceCtx.drawImage(
+    video,
+    sx*scaleX, sy*scaleY, sw*scaleX, sh*scaleY,
+    0, 0, sw, sh
+  );
 
   video.srcObject.getTracks().forEach(t=>t.stop());
   camCanvas.style.display="none";
+  placeholder.style.display="none";
 
   revealPrince();
 }
 
 function revealPrince(){
-  status.textContent = "You have become a prince";
+  status.textContent = "You have become a prince!";
   knight.style.display="block";
   faceCanvas.style.display="block";
 
@@ -175,29 +210,27 @@ function revealPrince(){
 
   setTimeout(()=>{
     movePrincessToHead();
-  },2500);
+  },2000);
 }
 
-// Dynamische Bewegung der Prinzessin direkt auf Kopf
 function movePrincessToHead(){
   princess.style.display="block";
-
-  // Kopfposition relativ zur Stage
   const faceRect = faceCanvas.getBoundingClientRect();
   const stageRect = document.getElementById('stage').getBoundingClientRect();
-  const targetX = faceRect.left - stageRect.left + faceRect.width/2 - princess.width/2;
+  const targetX = faceRect.left - stageRect.left;
 
-  let pos = -princess.width; // Start rechts außerhalb Stage
+  let pos = stageRect.width;
+  princess.style.bottom = "0px";
   const interval = setInterval(()=>{
-    pos += 8; // Geschwindigkeit
-    if(pos >= targetX){
+    pos -= 8; // Geschwindigkeit
+    if(pos <= targetX){
       pos = targetX;
       clearInterval(interval);
       status.textContent="Royal kiss!";
       kiss.play();
     }
     princess.style.left = pos + "px";
-  },16); // ca 60fps
+  },16);
 }
 
 btn.onclick = start;
