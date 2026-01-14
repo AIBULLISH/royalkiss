@@ -4,80 +4,110 @@
 <meta charset="UTF-8">
 <title>$ROYALKISS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
-  margin:0;
+  margin: 0;
   background: radial-gradient(circle at top, #2b1055, #000);
-  color:white;
+  color: white;
   font-family: Arial, sans-serif;
-  text-align:center;
+  text-align: center;
 }
-.container { max-width:900px; margin:auto; padding:20px; }
-h1 { color:gold; font-size:3rem; text-shadow:0 0 20px gold; }
-#stage { position:relative; max-width:640px; margin:auto; }
-video, canvas { width:100%; border-radius:16px; }
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+h1 {
+  color: gold;
+  font-size: 3rem;
+  text-shadow: 0 0 20px gold;
+}
+#stage {
+  position: relative;
+  max-width: 640px;
+  margin: auto;
+}
+video, canvas {
+  width: 100%;
+  border-radius: 16px;
+}
 button {
-  margin-top:20px;
-  padding:16px 40px;
-  font-size:1.2rem;
-  border-radius:40px;
-  border:none;
-  cursor:pointer;
-  background:gold;
-  font-weight:bold;
+  margin-top: 20px;
+  padding: 16px 40px;
+  font-size: 1.2rem;
+  border-radius: 40px;
+  border: none;
+  cursor: pointer;
+  background: gold;
+  font-weight: bold;
 }
-#text { margin-top:20px; font-size:1.6rem; text-shadow:0 0 12px hotpink; }
-#mint { display:none; background:linear-gradient(90deg, hotpink, gold); color:white; }
+#text {
+  margin-top: 20px;
+  font-size: 1.6rem;
+  text-shadow: 0 0 12px hotpink;
+}
+#mint {
+  display: none;
+  background: linear-gradient(90deg, hotpink, gold);
+  color: white;
+}
 </style>
 </head>
 
 <body>
 <div class="container">
 <h1>$ROYALKISS</h1>
+
 <div id="stage">
-<video id="video" autoplay muted playsinline></video>
-<canvas id="canvas"></canvas>
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas"></canvas>
 </div>
+
 <div id="text">ARE YOU WORTHY?</div>
 <button id="start">BECOME A PRINCE</button>
 <button id="mint">JOIN THE KINGDOM</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
 <script>
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const text = document.getElementById("text");
-const start = document.getElementById("start");
-const mint = document.getElementById("mint");
+const startBtn = document.getElementById("start");
+const mintBtn = document.getElementById("mint");
 
 const knight = new Image(); knight.src = "knight.png";
 const princess = new Image(); princess.src = "princess.png";
 const crown = new Image(); crown.src = "crown.png";
 const kiss = new Audio("kiss.mp3"); kiss.volume = 0.4;
 
-let faceData, stream;
+let stream;
+let faceCanvas;
 let princessX;
 let animating = false;
 
-start.onclick = async () => {
+startBtn.onclick = async () => {
+  text.innerText = "LOADING ROYAL MAGIC…";
+
   await faceapi.nets.tinyFaceDetector.loadFromUri(
     "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/"
   );
 
-  stream = await navigator.mediaDevices.getUserMedia({ video:true });
+  stream = await navigator.mediaDevices.getUserMedia({ video: true });
   video.srcObject = stream;
 
   video.onloadedmetadata = () => {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    text.innerText = "SCANNING ROYAL BLOOD…";
-    setTimeout(capture, 2000);
+    text.innerText = "SCANNING YOUR FACE…";
+    setTimeout(captureFace, 1500);
   };
 };
 
-async function capture() {
+async function captureFace() {
   const detection = await faceapi.detectSingleFace(
     video,
     new faceapi.TinyFaceDetectorOptions()
@@ -90,7 +120,7 @@ async function capture() {
 
   const { x, y, width, height } = detection.box;
 
-  const faceCanvas = document.createElement("canvas");
+  faceCanvas = document.createElement("canvas");
   faceCanvas.width = width;
   faceCanvas.height = height;
   faceCanvas.getContext("2d").drawImage(
@@ -98,18 +128,18 @@ async function capture() {
   );
 
   stream.getTracks().forEach(t => t.stop());
-  drawPrince(faceCanvas);
+  drawPrince();
 }
 
-function drawPrince(face) {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function drawPrince() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const knightX = canvas.width * 0.25;
   const knightY = canvas.height * 0.35;
 
   ctx.drawImage(knight, knightX, knightY, 300, 420);
-  ctx.drawImage(face, knightX + 95, knightY + 20, 110, 110);
-  ctx.drawImage(crown, knightX + 70, knightY - 40, 160, 110);
+  ctx.drawImage(faceCanvas, knightX + 95, knightY + 20, 110, 110);
+  ctx.drawImage(crown, knightX + 70, knightY - 45, 160, 110);
 
   text.innerText = "YOU ARE THE PRINCE";
   setTimeout(startPrincess, 1000);
@@ -122,13 +152,14 @@ function startPrincess() {
 }
 
 function animate() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const knightX = canvas.width * 0.25;
   const knightY = canvas.height * 0.35;
 
   ctx.drawImage(knight, knightX, knightY, 300, 420);
-  ctx.drawImage(crown, knightX + 70, knightY - 40, 160, 110);
+  ctx.drawImage(faceCanvas, knightX + 95, knightY + 20, 110, 110);
+  ctx.drawImage(crown, knightX + 70, knightY - 45, 160, 110);
 
   if (animating) {
     ctx.drawImage(princess, princessX, knightY, 300, 420);
@@ -138,9 +169,9 @@ function animate() {
       animating = false;
       kiss.play();
       ctx.fillStyle = "rgba(255,105,180,0.25)";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       text.innerText = "THE PRINCESS HAS CHOSEN YOU";
-      mint.style.display = "inline-block";
+      mintBtn.style.display = "inline-block";
       return;
     }
   }
