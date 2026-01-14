@@ -16,6 +16,7 @@ h1{
   margin:20px 0 10px;
   font-size:2.2rem;
 }
+
 /* Bühne */
 #stage{
   position:relative;
@@ -29,17 +30,7 @@ h1{
   background: linear-gradient(#a69dcf,#5c3f99);
 }
 
-/* Kamera */
-video, #cameraCanvas{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  z-index:0;
-}
-
-/* Ritter */
+/* Ritter + Krone immer sichtbar */
 #knight{
   position:absolute;
   bottom:0;
@@ -47,15 +38,40 @@ video, #cameraCanvas{
   transform:translateX(-50%);
   height:92%;
   z-index:2;
+}
+
+#crown{
+  position:absolute;
+  top:70px;
+  left:50%;
+  transform:translateX(-50%) scale(1);
+  width:100px;
+  z-index:6;
+}
+
+/* Platzhalter für Kopfposition */
+#head-placeholder{
+  position:absolute;
+  width:160px;
+  height:160px;
+  bottom:300px;
+  left:50%;
+  transform:translateX(-50%);
+  border:3px dashed rgba(255,255,255,0.7);
+  border-radius:50%;
+  z-index:3;
+}
+
+/* Kamera */
+video{
   display:none;
 }
 
-/* GESICHT direkt auf Ritter */
 #faceCanvas{
   position:absolute;
-  width:160px; /* kleiner Kopf */
+  width:160px;
   height:160px;
-  bottom:300px; /* über Ritter gesetzt */
+  bottom:300px;
   left:50%;
   transform:translateX(-50%);
   border-radius:50%;
@@ -64,24 +80,13 @@ video, #cameraCanvas{
   display:none;
 }
 
-/* Krone */
-#crown{
-  position:absolute;
-  top:180px; /* über Kopf */
-  left:50%;
-  transform:translateX(-50%) scale(0);
-  width:100px;
-  z-index:6;
-  transition:.6s ease;
-}
-
 /* Prinzessin */
 #princess{
   position:absolute;
   bottom:0;
   right:-240px;
   height:92%;
-  z-index:3;
+  z-index:5;
   display:none;
 }
 
@@ -105,21 +110,20 @@ video, #cameraCanvas{
 </head>
 <body>
 
-<h1>YOUR ROYAL TRANSFORMATION</h1>
+<h1>PLACE YOUR FACE ON THE PRINCE</h1>
 
 <div id="stage">
+  <img id="knight" src="knight.png">
+  <img id="crown" src="crown.png">
+  <div id="head-placeholder"></div>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="cameraCanvas"></canvas>
-
-  <img id="knight" src="knight.png">
   <canvas id="faceCanvas"></canvas>
-  <img id="crown" src="crown.png">
   <img id="princess" src="princess.png">
 </div>
 
-<div id="status">Drücke SCAN um dein Prinzenbild zu enthüllen</div>
+<div id="status">Positioniere dein Gesicht über dem Ritter</div>
 <button id="btn">SCAN MY FACE</button>
-
 <audio id="kiss" src="kiss.mp3"></audio>
 
 <script>
@@ -128,91 +132,86 @@ const camCanvas = document.getElementById('cameraCanvas');
 const camCtx = camCanvas.getContext('2d');
 const faceCanvas = document.getElementById('faceCanvas');
 const faceCtx = faceCanvas.getContext('2d');
-
 const knight = document.getElementById('knight');
 const crown = document.getElementById('crown');
 const princess = document.getElementById('princess');
 const kiss = document.getElementById('kiss');
 const status = document.getElementById('status');
 const btn = document.getElementById('btn');
+const placeholder = document.getElementById('head-placeholder');
 
 async function start(){
   btn.disabled = true;
   status.textContent = "Loading royal magic…";
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video:{ facingMode:'user' }
-  });
+  const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' } });
   video.srcObject = stream;
+  video.style.display = "block";
 
-  await new Promise(r => video.onloadedmetadata = r);
+  await new Promise(r=>video.onloadedmetadata=r);
   camCanvas.width = video.videoWidth;
   camCanvas.height = video.videoHeight;
 
-  setTimeout(captureFace, 1000);
+  status.textContent = "Positioniere dein Gesicht über dem Ritter und drücke SCAN";
 }
 
-function captureFace(){
+btn.onclick = async ()=>{
+  if(video.srcObject===null){
+    await start();
+    return;
+  }
+
+  // Capture Kopf
   camCtx.drawImage(video,0,0,camCanvas.width,camCanvas.height);
 
-  // Kopf direkt proportional auf Ritter
-  const sw = camCanvas.width/3;
-  const sh = camCanvas.width/3;
-  const sx = camCanvas.width/2 - sw/2;
-  const sy = camCanvas.height/4 - sh/2;
+  const stageRect = document.getElementById('stage').getBoundingClientRect();
+  const phRect = placeholder.getBoundingClientRect();
 
-  faceCanvas.width = 160;
-  faceCanvas.height = 160;
+  const scaleX = camCanvas.width / stageRect.width;
+  const scaleY = camCanvas.height / stageRect.height;
 
-  faceCtx.drawImage(
-    video,
-    sx, sy, sw, sh,
-    0, 0, 160, 160
-  );
+  const sx = phRect.left - stageRect.left;
+  const sy = phRect.top - stageRect.top;
+  const sw = phRect.width;
+  const sh = phRect.height;
 
+  faceCanvas.width = sw;
+  faceCanvas.height = sh;
+
+  faceCtx.drawImage(video, sx*scaleX, sy*scaleY, sw*scaleX, sh*scaleY, 0, 0, sw, sh);
+
+  // Stop camera
   video.srcObject.getTracks().forEach(t=>t.stop());
-  camCanvas.style.display="none";
+  video.style.display="none";
 
-  revealPrince();
-}
-
-function revealPrince(){
-  status.textContent = "You have become a prince!";
-  knight.style.display="block";
   faceCanvas.style.display="block";
+  placeholder.style.display="none";
 
-  setTimeout(()=>{
-    crown.style.transform="translateX(-50%) scale(1)";
-  },800);
-
-  setTimeout(()=>{
-    movePrincessToHead();
-  },1800);
+  status.textContent="You have become a prince!";
+  summonPrincess();
 }
 
-function movePrincessToHead(){
+function summonPrincess(){
   princess.style.display="block";
+
   const faceRect = faceCanvas.getBoundingClientRect();
   const stageRect = document.getElementById('stage').getBoundingClientRect();
   const targetX = faceRect.left - stageRect.left;
 
   let pos = stageRect.width;
-  princess.style.bottom = "0px";
+  princess.style.bottom="0px";
 
   const interval = setInterval(()=>{
     pos -= 8;
-    if(pos <= targetX){
-      pos = targetX;
+    if(pos<=targetX){
+      pos=targetX;
       clearInterval(interval);
       status.textContent="Royal kiss!";
       kiss.play();
     }
-    princess.style.left = pos + "px";
+    princess.style.left=pos+"px";
   },16);
 }
-
-btn.onclick = start;
 </script>
-
 </body>
 </html>
